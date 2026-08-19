@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "funnel-test"
+version = "4.0.2"
+description = "Funnel Test"
+authors = ["Matthew West <mwest23@uchicago.edu>"]
+license = "Apache-2.0"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+google-auth = "*"
+requests = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

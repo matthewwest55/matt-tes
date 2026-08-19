@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tes-funnel
+  labels:
+    app: tes-funnel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tes-funnel
+  template:
+    metadata:
+      labels:
+        app: tes-funnel
+    spec:
+      containers:
+      # Container 1: Funnel Server
+      - name: funnel-server
+        image: tes-funnel-wrapper:dind-v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+          name: http
+        - containerPort: 9090
+          name: grpc
+        env:
+        - name: DOCKER_HOST
+          value: tcp://127.0.0.1:2375
+        - name: DOCKER_API_VERSION
+          value: "1.43"
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/gcp/gcp-key.json
+        volumeMounts:
+        - name: gcp-key-volume
+          mountPath: /etc/gcp
+          readOnly: true
+        # ADDED: Shared working directory volume
+        - name: funnel-work-volume
+          mountPath: /funnel-work-dir
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+
+      # Container 2: DinD Sidecar
+      - name: dind-daemon
+        image: docker:24-dind
+        securityContext:
+          privileged: true
+        env:
+        - name: DOCKER_TLS_CERTDIR
+          value: ""
+        volumeMounts:
+        - name: docker-graph-storage
+          mountPath: /var/lib/docker
+        # ADDED: Same shared working directory volume and path
+        - name: funnel-work-volume
+          mountPath: /funnel-work-dir
+        resources:
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+
+      volumes:
+      - name: docker-graph-storage
+        emptyDir: {}
+      - name: gcp-key-volume
+        secret:
+          secretName: gcp-tes-key
+      # ADDED: Shared volume for Funnel execution files
+      - name: funnel-work-volume
+        emptyDir: {}

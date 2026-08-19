@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tes-funnel
+  labels:
+    app: tes-funnel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tes-funnel
+  template:
+    metadata:
+      labels:
+        app: tes-funnel
+    spec:
+      containers:
+      # Container 1: The GA4GH TES Funnel Server
+      - name: funnel-server
+        image: tes-funnel-wrapper:dind-v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+          name: http
+        - containerPort: 9090
+          name: grpc
+        env:
+        # Instructs the client to route traffic over the network to the sidecar
+        - name: DOCKER_HOST
+          value: tcp://127.0.0.1:2375
+        # FORCE COMPATIBILITY: Downgrades the API protocol version to match the sidecar daemon
+        - name: DOCKER_API_VERSION
+          value: "1.43"
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+
+      # Container 2: The Isolated Docker-in-Docker Daemon
+      - name: dind-daemon
+        image: docker:24-dind
+        securityContext:
+          privileged: true
+        env:
+        - name: DOCKER_TLS_CERTDIR
+          value: ""
+        volumeMounts:
+        - name: docker-graph-storage
+          mountPath: /var/lib/docker
+        resources:
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+
+      volumes:
+      - name: docker-graph-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tes-funnel-service
+spec:
+  type: ClusterIP
+  selector:
+    app: tes-funnel
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  - name: grpc
+    port: 9090
+    targetPort: 9090
