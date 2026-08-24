@@ -1,5 +1,5 @@
 #!/bin/bash
-DOMAIN="https://base.themattwest.com"
+DOMAIN="https://${HOSTNAME}.themattwest.com"
 USERNAME="test"
 
 # Fetch 1-hour access token from Fence container

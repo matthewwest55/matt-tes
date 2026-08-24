@@ -1,8 +1,8 @@
-# need to move files into here and do poetry setup
-# need to get gcp-key.json in here
-# need to move manifest.tsv into here as well, the reduced version
+git clone https://github.com/matthewwest55/matt-tes.git
+cd matt-tes
 
-cd setup_commons
+mv ../extra/manifest.tsv .
+mv ../extra/gcp-key.json .
 
 # Wait for services to be running
 SERVICES=(

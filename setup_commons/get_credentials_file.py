@@ -1,9 +1,11 @@
 import json
 import subprocess
 import requests
+import sys
 
 # Configuration
-COMMONS_DOMAIN = "https://base.themattwest.com"  # Replace with your domain
+HOSTNAME = sys.argv[1]
+COMMONS_DOMAIN = f"https://{HOSTNAME}.themattwest.com"  # Replace with your domain
 USERNAME = "test"
 OUTPUT_FILE = "credentials.json"
 
