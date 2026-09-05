@@ -148,8 +148,9 @@ with open(LOG_FILE, "w") as log:
             "_guid_type": "discovery_metadata",
             "gen3_discovery": {
                 "study_name": f"Dataset - {subdir_name}",
-                "study_id": subdir_name,
+                "site_id": subdir_name,
                 "project_id": PROJECT_ID,
+                "commons_id": HOSTNAME,
                 "file_count": len(file_manifest),
                 "manifest": file_manifest  # Contains only the files in this subdirectory
             }
