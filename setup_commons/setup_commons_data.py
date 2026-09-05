@@ -106,7 +106,6 @@ with open(INDEXED_MANIFEST, "r") as f:
 
 print("\nMDS metadata ingestion complete.")
 
-"""
 # 1. Group files by their parent subdirectory name
 subdir_groups = defaultdict(list)
 
@@ -167,4 +166,3 @@ with open(LOG_FILE, "w") as log:
     write_log(f"Successfully created {success_count} Mesh PIDs across {len(subdir_groups)} subdirectories.")
 
 print(f"\nExecution log written to: {os.path.abspath(LOG_FILE)}")
-"""
