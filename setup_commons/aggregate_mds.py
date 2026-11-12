@@ -1,4 +1,6 @@
 import requests
+import os
+import re
 from collections import defaultdict
 from gen3.auth import Gen3Auth
 from gen3.metadata import Gen3Metadata
@@ -9,43 +11,51 @@ SOURCE_NODES = {}
 
 # Starts at 0, which is what we want
 for num in range(NUMBER_INSTANCES):
-    SOURCE_NODES[num] = f"https://data-instance-{num}.themattwest.com"
+    SOURCE_NODES[f"node_{num}"] = f"https://data-instance-{num}.themattwest.com"
 
-# Authenticate against the Hub (requires an API key/credentials.json from Hub portal)
 auth = Gen3Auth(HUB_URL, refresh_file="credentials.json")
 hub_mds = Gen3Metadata(auth)
 
 for node_name, node_url in SOURCE_NODES.items():
     print(f"Fetching metadata from {node_name}...")
-
-    # 1. Fetch raw metadata or index records from remote node
-    response = requests.get(f"{node_url}/mds/metadata?limit=5000", timeout=30)
+    
+    # CRITICAL: Append `data=True` to return full metadata dicts instead of GUID strings
+    response = requests.get(f"{node_url}/mds/metadata?data=True&limit=5000", timeout=30)
     response.raise_for_status()
-    remote_records = response.json()
+    remote_records = response.json()  # Returns: {"<guid>": {<metadata_blob>}}
 
-    # 2. Group objects into subdirectories/projects
     groups = defaultdict(list)
     for guid, data in remote_records.items():
-        # Skip existing study-level GUIDs if any
+        # Skip existing study-level GUIDs
         if data.get("_guid_type") == "discovery_metadata":
             continue
 
-        subdir = data.get("subdir_name", "default_collection")
+        # Extract subdirectory from metadata or parse file path if present
+        file_path = data.get("file_path", "")
+        subdir = data.get("subdir_name") or (os.path.dirname(file_path) if file_path else "default_collection")
+        if not subdir or subdir == ".":
+            subdir = "default_collection"
+
         groups[subdir].append({
             "object_id": guid,
-            "file_name": data.get("file_name", "unknown"),
-            "file_size": data.get("size", 0),
-            "md5sum": data.get("hashes", {}).get("md5", "")
+            "file_name": data.get("file_name", os.path.basename(file_path) or "unknown"),
+            "file_size": int(data.get("size", 0)),
+            "md5sum": data.get("hashes", {}).get("md5") or data.get("md5sum", "")
         })
 
-    # 3. Create and push dataset-level Mesh PIDs directly to the Hub
+    print(f"Found {len(groups)} subdirectory groups for {node_name}.")
+
+    print(groups)
+
+    # Create dataset-level Mesh PIDs on the Hub
     for subdir, manifest in groups.items():
-        mesh_pid = f"hub/mesh-{node_name.lower()}-{subdir}"
+        clean_subdir = re.sub(r"[^a-zA-Z0-9_-]", "_", subdir)
+        mesh_pid = f"hub/mesh-{node_name.lower()}-{clean_subdir}"
         payload = {
             "_guid_type": "discovery_metadata",
             "gen3_discovery": {
-                "study_name": f"{node_name} - {subdir}",
-                "study_id": f"{node_name}_{subdir}",
+                "study_name": f"Dataset - {subdir}",
+                "study_id": subdir,
                 "source_commons": node_url,
                 "file_count": len(manifest),
                 "manifest": manifest
@@ -53,4 +63,4 @@ for node_name, node_url in SOURCE_NODES.items():
         }
         
         hub_mds.create(guid=mesh_pid, metadata=payload, overwrite=True)
-        print(f"Pushed {mesh_pid} to Hub with {len(manifest)} files.")
+        print(f"Pushed {mesh_pid} with {len(manifest)} files.")
