@@ -12,7 +12,7 @@ from gen3.metadata import Gen3Metadata
 HOSTNAME = sys.argv[1]
 GEN3_ENDPOINT = f"https://{HOSTNAME}.themattwest.com"
 CREDENTIALS_FILE = "credentials.json"
-MANIFEST_FILE = "manifest-more-data.tsv"
+MANIFEST_FILE = "manifest.tsv"
 GCS_BUCKET_BASE = "gs://data-instance-0-test-bucket"  # Base GCS bucket path
 INDEXED_MANIFEST = "indexed_manifest.tsv"
 PROJECT_ID = "demo-test"
